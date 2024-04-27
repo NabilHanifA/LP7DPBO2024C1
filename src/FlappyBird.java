@@ -11,6 +11,10 @@ public class FlappyBird extends JPanel implements ActionListener, KeyListener {
     int frameWidth = 360;
     int frameHeight = 640;
 
+    boolean gameOver;
+    int score;
+
+    JLabel scoreLabel;
     Image backgroundImage;
     Image birdImage;
     Image lowerPipeImage;
@@ -34,6 +38,16 @@ public class FlappyBird extends JPanel implements ActionListener, KeyListener {
     Timer pipesCooldown;
     int gravity = 1;
     public FlappyBird(){
+
+        scoreLabel = new JLabel("Score: 0");
+        scoreLabel.setForeground(Color.WHITE);
+        scoreLabel.setFont(new Font("Arial", Font.BOLD, 20));
+        scoreLabel.setBounds(20, 20, 150, 30);
+        add(scoreLabel);
+
+        gameOver = false;
+        score = 0;
+
         setPreferredSize(new Dimension(frameWidth, frameHeight));
         setFocusable(true);
         addKeyListener(this);
@@ -94,26 +108,88 @@ public class FlappyBird extends JPanel implements ActionListener, KeyListener {
         pipes.add(lowerPipe);
     }
 
-    @Override
-    public void actionPerformed(ActionEvent e) {
-        move();
-        repaint();
-    }
+    public void checkCollision() {
+        Rectangle playerBounds = new Rectangle(player.getPosX(), player.getPosY(), player.getWidth(), player.getHeight());
 
-    @Override
-    public void keyTyped(KeyEvent e) {
+        for (Pipe pipe : pipes) {
+            Rectangle pipeBounds = new Rectangle(pipe.getPosX(), pipe.getPosY(), pipe.getWidth(), pipe.getHeight());
+            if (playerBounds.intersects(pipeBounds)) {
+                gameOver = true;
+                break;
+            }
+        }
 
-    }
+        if (player.getPosY() >= frameHeight - player.getHeight()) {
+            gameOver = true;
+        }
 
-    @Override
-    public void keyPressed(KeyEvent e) {
-        if(e.getKeyCode() == KeyEvent.VK_SPACE){
-            player.setVelocityY(-10);
+        if (gameOver) {
+            gameLoop.stop();
+            pipesCooldown.stop();
         }
     }
 
-    @Override
-    public void keyReleased(KeyEvent e) {
 
+
+
+    // Metode baru untuk mereset permainan saat tombol "R" ditekan
+    public void restartGame() {
+        if (gameOver || player.getPosY() >= frameHeight - player.getHeight()) { // Periksa apakah game over dan posisi pemain ada di batas bawah JFrame
+            pipes.clear();
+            player.setPosY(playerStartPosY);
+            score = 0;
+            gameOver = false;
+            gameLoop.start();
+            pipesCooldown.start();
+            repaint();
+        }
     }
+
+
+
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        if (!gameOver) {
+            move();
+            checkCollision();
+            updateScore();
+            repaint();
+        }
+    }
+
+    // Metode untuk menangani penambahan skor dan menampilkan label skor
+    public void updateScore() {
+        for (int i = 0; i < pipes.size(); i += 2) { // Iterasi hanya setiap dua pipa (karena setiap pipa memiliki bagian atas dan bawah)
+            Pipe pipe = pipes.get(i);
+            if (!pipe.isPassed() && pipe.getPosX() + pipe.getWidth() < player.getPosX()) {
+                pipe.setPassed(true);
+                score++;
+            }
+        }
+        // Setel teks label skor ke nilai skor yang baru
+        scoreLabel.setText("Score: " + score);
+    }
+
+
+    @Override
+    public void keyPressed(KeyEvent e) {
+        if (!gameOver) {
+            if (e.getKeyCode() == KeyEvent.VK_SPACE) {
+                player.setVelocityY(-10);
+            }
+        } else {
+            if (e.getKeyCode() == KeyEvent.VK_R) {
+                restartGame(); // Panggil restartGame() saat tombol "R" ditekan
+            }
+        }
+    }
+
+
+    // Metode yang tidak digunakan, dapat dihapus
+    @Override
+    public void keyTyped(KeyEvent e) {}
+
+    @Override
+    public void keyReleased(KeyEvent e) {}
+
 }
